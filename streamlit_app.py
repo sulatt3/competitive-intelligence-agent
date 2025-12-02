@@ -71,12 +71,12 @@ def fetch_trends(company: str) -> List[Dict[str, Any]]:
         pytrends.build_payload([company], timeframe="today 3-m", geo="")
         df = pytrends.interest_over_time()
         
-        # Debug logging
-        st.write(f"DEBUG - Trends DataFrame empty: {df.empty}")
-        st.write(f"DEBUG - Columns: {df.columns.tolist() if not df.empty else 'None'}")
-        st.write(f"DEBUG - Company '{company}' in columns: {company in df.columns if not df.empty else False}")
+        if df.empty:
+            st.warning(f"Google Trends: No data returned for '{company}'")
+            return [{"source": "Google Trends", "current_interest_level": None}]
         
-        if df.empty or company not in df.columns:
+        if company not in df.columns:
+            st.warning(f"Google Trends: Column '{company}' not found. Available: {df.columns.tolist()}")
             return [{"source": "Google Trends", "current_interest_level": None}]
         
         interest = df[company]
@@ -92,12 +92,10 @@ def fetch_trends(company: str) -> List[Dict[str, Any]]:
             "trend_direction": "rising" if interest.iloc[-7:].mean() > mean else "stable/declining"
         }
         
-        st.write(f"DEBUG - Trends result: {result}")
         return [result]
         
     except Exception as e:
-        st.warning(f"Google Trends error: {e}")
-        st.write(f"DEBUG - Full error: {str(e)}")
+        st.error(f"Google Trends exception: {str(e)}")
         return [{"source": "Google Trends", "current_interest_level": None}]
 
 def collect_all_data(company: str, use_news: bool, use_trends: bool) -> List[Dict[str, Any]]:
